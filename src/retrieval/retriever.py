@@ -22,7 +22,7 @@ def get_cached_query_vector(question: str):
 def hybrid_search(client: QdrantClient,
                   question: str,
                   collection_name: str = "vietnam_laws",
-                  top_k: int = 10,
+                  top_k: int = 20,
                   metadata_filters: dict = None):
 
     dense_vector, sparse_vector = get_cached_query_vector(question)

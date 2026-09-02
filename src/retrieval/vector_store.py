@@ -9,7 +9,10 @@ import hashlib
 
 @lru_cache()
 def get_qdrant_client():
-    return QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"))
+    return QdrantClient(
+        url=os.getenv("QDRANT_URL", "http://localhost:6333"),
+        api_key=os.getenv("QDRANT_API_KEY")
+    )
 
 def init_collection(client : QdrantClient,collection_name:str = "vietnam_laws"):
     if client.collection_exists(collection_name=collection_name):

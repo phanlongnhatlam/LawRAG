@@ -369,7 +369,7 @@ def chunking_nghi_dinh(raw_text:str) -> list[Document]:
                         content = khoan
                     )
                     ten_khoan = "KHOẢN " + ten_khoan
-                    print(ten_khoan)
+
                     chunks.append(
                         make_document(
                             content=khoan,
@@ -505,7 +505,7 @@ def chunking_nghi_quyet(raw_text:str) -> list[Document]:
                 match = re.match(r"^\s*(\d+)", khoan)
                 if match:
                     ten_khoan = "KHOẢN " + match.group(1)
-                    print(ten_khoan)
+
 
                     raw_diem_list = re.split(
                         r"(?=\n\s*[a-zđ]+\)\s+)",
