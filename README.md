@@ -17,7 +17,7 @@ Hệ thống Retrieval-Augmented Generation (RAG) chuyên biệt cho hỏi-đáp
 
 Pipeline được chia thành 2 luồng độc lập: **Data Ingestion** (xử lý offline) và **Query & Generation** (xử lý khi người dùng hỏi).
 
-![LawRAG Pipeline Architecture](![rag_pipeline.svg](rag_pipeline.svg))
+![LawRAG Pipeline Architecture](rag_pipeline.svg)
 
 ### 1. Data Ingestion
 
@@ -43,7 +43,7 @@ Pipeline được chia thành 2 luồng độc lập: **Data Ingestion** (xử l
 ## Cài đặt
 
 ```bash
-git clone https://github.com/<your-username>/LawRAG.git
+git clone https://github.com/phanlongnhatlam/LawRAG.git
 cd LawRAG
 pip install -r requirements.txt
 ```
