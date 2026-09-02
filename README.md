@@ -6,18 +6,18 @@ Hệ thống Retrieval-Augmented Generation (RAG) chuyên biệt cho hỏi-đáp
 
 - **Xử lý đa định dạng**: hỗ trợ file PDF và DOCX
 - **Chunking thông minh**: tự động phân loại cấu trúc văn bản
-  - *Structural Chunking* (regex theo Điều/Khoản/Chương) cho văn bản luật đã nhận diện được cấu trúc
+  - *Structural Chunking* (regex theo cấu trúc pháp lý) cho văn bản luật đã nhận diện được cấu trúc
   - *Recursive Chunking* (LangChain) cho văn bản chưa xử lý được cấu trúc
 - **Hybrid Search**: kết hợp dense embedding (HuggingFace) và sparse embedding (Qdrant/BM25)
-- **Metadata-aware retrieval**: trích xuất metadata từ câu hỏi để lọc kết quả tìm kiếm khi có thể
+- **Metadata retrieval**: trích xuất metadata từ câu hỏi để lọc kết quả tìm kiếm khi có thể
 - **Reranking**: sử dụng reranker model để tinh chỉnh lại top-k kết quả trước khi sinh câu trả lời
-- **Vector store**: Qdrant
+- **Vector store**: Qdrant 
 
 ## Kiến trúc hệ thống
 
 Pipeline được chia thành 2 luồng độc lập: **Data Ingestion** (xử lý offline) và **Query & Generation** (xử lý khi người dùng hỏi).
 
-![LawRAG Pipeline Architecture](./images/pipeline-diagram.png)
+![LawRAG Pipeline Architecture](![rag_pipeline.svg](rag_pipeline.svg))
 
 ### 1. Data Ingestion
 
