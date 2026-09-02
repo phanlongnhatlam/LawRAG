@@ -34,12 +34,8 @@ async def ask(request : ChatRequest):
                payload.get("ten_diem")
            ]
            vi_tri = " - ".join([str(part) for part in vi_tri_parts if part])
-           content = (
-               f"Là phần mở đầu : {phan_mo_dau}\n"
-               f"Vị trí: {vi_tri}\n"
-               f"Nội dung: {noi_dung}"
-           )
-
+           prefix = "[Phần mở đầu] " if phan_mo_dau else ""
+           content = f"{prefix}Vị trí: {vi_tri}\nNội dung: {noi_dung}"
            contexts.append(content)
 
        context = "\n\n---\n\n".join(contexts)
