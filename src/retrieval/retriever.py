@@ -38,6 +38,14 @@ def hybrid_search(client: QdrantClient,
                         match=models.MatchValue(value=value)
                     )
                 )
+            elif key =="phan_mo_dau":
+                if value is True or str(value).lower() == "true":
+                    must_conditions.append(
+                        models.FieldCondition(
+                            key=key,
+                            match=models.MatchValue(value=True)
+                        )
+                    )
             else:
                 must_conditions.append(
                     models.FieldCondition(

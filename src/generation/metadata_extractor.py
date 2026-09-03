@@ -14,6 +14,7 @@ class LegalQueryExtractor(BaseModel):
     ten_muc_chi_thi: Optional[str] = Field(default=None)
     ten_khoan: Optional[str] = Field(default=None)
     ten_diem: Optional[str] = Field(default=None)
+    phan_mo_dau: Optional[bool] = Field(default=False)
 
 def extract_metadata_from_query(user_query: str):
     llm = get_llm()
@@ -27,4 +28,4 @@ def extract_metadata_from_query(user_query: str):
     return result.model_dump(exclude_none=True)
 
 if __name__ == "__main__":
-    print(extract_metadata_from_query(user_query="điều 3 của NGHỊ ĐỊNH SỬA ĐỔI, BỔ SUNG MỘT SỐ ĐIỀU CỦA 03 NGHỊ ĐỊNH CỦA CHÍNH PHỦ VỀ CHẾ ĐỘ TRỢ CẤP MỘT LẦN KHI THÔI PHỤC VỤ TRONG QUÂN ĐỘI ĐỐI VỚI SĨ QUAN, QUÂN NHÂN CHUYÊN NGHIỆP, CÔNG NHÂN VÀ VIÊN CHỨC QUỐC PHÒNG nói về cái gì"))
+    print(extract_metadata_from_query(user_query="NGHỊ ĐỊNH SỬA ĐỔI, BỔ SUNG MỘT SỐ ĐIỀU CỦA 03 NGHỊ ĐỊNH CỦA CHÍNH PHỦ VỀ CHẾ ĐỘ TRỢ CẤP MỘT LẦN KHI THÔI PHỤC VỤ TRONG QUÂN ĐỘI ĐỐI VỚI SĨ QUAN, QUÂN NHÂN CHUYÊN NGHIỆP, CÔNG NHÂN VÀ VIÊN CHỨC QUỐC PHÒNG được căn cứ theo những luật nào?"))

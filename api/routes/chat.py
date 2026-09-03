@@ -20,7 +20,6 @@ async def ask(request : ChatRequest):
        for result in results:
            payload = result.get("payload", {})
            noi_dung = payload.get("page_content", "")
-           phan_mo_dau = payload.get("phan_mo_dau", False)
            vi_tri_parts = [
                payload.get("loai_van_ban"),
                payload.get("ten_van_ban"),
@@ -34,8 +33,7 @@ async def ask(request : ChatRequest):
                payload.get("ten_diem")
            ]
            vi_tri = " - ".join([str(part) for part in vi_tri_parts if part])
-           prefix = "[Phần mở đầu] " if phan_mo_dau else ""
-           content = f"{prefix}Vị trí: {vi_tri}\nNội dung: {noi_dung}"
+           content = f"Vị trí: {vi_tri}\nNội dung: {noi_dung}"
            contexts.append(content)
 
        context = "\n\n---\n\n".join(contexts)
