@@ -2,7 +2,7 @@
 
 LawRAG is a specialized Retrieval-Augmented Generation (RAG) system designed for Vietnamese legal documents (PDF and DOCX). It utilizes Hybrid Search (Dense + Sparse embeddings) combined with Reranking to maximize retrieval accuracy for legal Articles and Clauses, while eliminating LLM hallucination.
 
-![img_1.png](img_1.png)
+![img_1.png](img/img_1.png)
 
 ## ✨ Key Features
 
@@ -20,7 +20,7 @@ LawRAG is a specialized Retrieval-Augmented Generation (RAG) system designed for
 ### The pipeline is divided into two independent flows:
 ##### **Data Ingestion** (Offline) and **Query & Generation** (Online)
 
-![LawRAG Pipeline Architecture](rag_pipeline.svg)
+![LawRAG Pipeline Architecture](img/rag_pipeline.svg)
 
 ### 1. Data Ingestion Pipeline
 
