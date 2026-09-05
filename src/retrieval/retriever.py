@@ -6,7 +6,7 @@ from src.ingestion.embedder import get_dense_vector, get_sparse_vector, reranker
 from src.retrieval.vector_store import get_qdrant_client
 
 
-# cache question : 100 question
+# cache question
 @lru_cache(maxsize=100)
 def get_cached_query_vector(question: str):
     # qdrant hỗ trợ xử lý theo dạng list , vậy nên để [] sẽ nhanh hơn
@@ -22,7 +22,7 @@ def get_cached_query_vector(question: str):
 def hybrid_search(client: QdrantClient,
                   question: str,
                   collection_name: str = "vietnam_laws",
-                  top_k: int = 20,
+                  top_k: int = 10,
                   metadata_filters: dict = None):
 
     dense_vector, sparse_vector = get_cached_query_vector(question)
@@ -90,7 +90,7 @@ def rerank_results(question: str, qdrant_results: list) -> list[dict]:
     for i, res in enumerate(qdrant_results):
         reranked_results.append({
             "jina_score": float(scores[i]),
-            "qdrant_rank_cu": i + 1,
+            "qdrant_rank": i + 1,
             "payload": res.payload,
             "id": res.id
         })
@@ -100,7 +100,7 @@ def rerank_results(question: str, qdrant_results: list) -> list[dict]:
 def advanced_search(client,
                     question: str,
                     collection_name: str = "vietnam_laws",
-                    top_k_qdrant: int = 20,
+                    top_k_qdrant: int = 10,
                     top_k_final: int = 5):
     filter_dict = extract_metadata_from_query(question)
     qdrant_results = hybrid_search(client=client,
@@ -109,7 +109,7 @@ def advanced_search(client,
                                    metadata_filters=filter_dict,
                                    top_k=top_k_qdrant)
 
-    # trong trường hợp data trong qdrant khong co metadata do
+    # trong trường hợp data trong qdrant khong co metadata
     if len(qdrant_results) == 0:
         qdrant_results = hybrid_search(
             client=client,

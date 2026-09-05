@@ -4,7 +4,7 @@ from fastembed import SparseTextEmbedding
 from dotenv import load_dotenv
 
 load_dotenv()
-dense_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+dense_model = SentenceTransformer('Alibaba-NLP/gte-multilingual-base', trust_remote_code=True)
 sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
 reranker_model = TextCrossEncoder(model_name='jinaai/jina-reranker-v2-base-multilingual')
 

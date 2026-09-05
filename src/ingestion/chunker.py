@@ -1,14 +1,59 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from src.ingestion.embedder import dense_model
 import re
 
+tokenizer = dense_model.tokenizer
 
+def token_len(text: str) -> int:
+    return len(tokenizer.encode(text, add_special_tokens=True))
+
+def fallback_chunking(chunks: list[Document],max_tokens = 2000) -> list[Document]:
+    final_chunks = []
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=max_tokens,
+        chunk_overlap=500,
+        is_separator_regex=True, # defaulting to ["\n\n", "\n", " ", ""]
+        length_function=token_len,
+    )
+
+    for chunk in chunks:
+        if token_len(chunk.page_content) <= max_tokens:
+            final_chunks.append(chunk)
+        else:
+
+            all_splits = splitter.split_text(chunk.page_content)
+            meta = chunk.metadata
+            vi_tri_parts = [
+                meta.get("loai_van_ban"),
+                meta.get("ten_van_ban"),
+                meta.get("ten_phan"),
+                meta.get("ten_chuong"),
+                meta.get("ten_muc"),
+                meta.get("ten_tieu_muc"),
+                meta.get("ten_dieu"),
+                meta.get("ten_muc_chi_thi"),
+                meta.get("ten_khoan"),
+                meta.get("ten_diem")
+            ]
+            vi_tri = " - ".join([str(part) for part in vi_tri_parts if part])
+
+            for i, split in enumerate(all_splits):
+                new_page_content = f"[{vi_tri} (đoạn {i + 1}/{len(all_splits)})]\n{split}"
+                final_chunks.append(
+                    Document(
+                        page_content=new_page_content,
+                        metadata=meta.copy()
+                    )
+                )
+    return final_chunks
 
 def chunking(raw_text:str) -> list[Document]:
     chunks = []
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=1500,
+        chunk_overlap=300,
         separators=["\n\n", "\n", ".", " "]
     )
     all_splits = splitter.split_text(raw_text)
@@ -94,19 +139,16 @@ def make_document(content: str,
         }
     )
 
-
 def chunking_bo_luat(raw_text:str) -> list[Document]:
     regex_ten_bo_luat = r"\*\*BỘ\s+[^\n]*"
     regex_ten_phan = r"\*\*Phần.*?(?=\n+?[ \t]*#*?[ \t]*\*\*(Chương|Điều))"
     regex_ten_chuong = r"\*\*Chương.*?(?=\n+?[ \t]*#*?[ \t]*\*\*(Điều|Tiểu|Mục))"
     regex_ten_muc = r"\*\*Mục.*?(?=\n+[ \t]*#*?[ \t]*\*\*(Điều|Tiểu))"
     regex_ten_tieu_muc = r"\*\*Tiểu.*?(?=\n+[ \t]*#*?[ \t]*\*\*Điều)"
-
     regex_phan = r"(?=\*\*Phần)"
     regex_chuong = r"(?=\*\*Chương)"
     regex_muc = r"(?=\*\*Mục)"
     regex_tieu_muc = r"(?=\*\*Tiểu)"
-
     chunks = []
     raw_text = re.sub(
         r"<mark>\s*(Phần|Chương|Mục|Tiểu|Điều)",
@@ -122,10 +164,8 @@ def chunking_bo_luat(raw_text:str) -> list[Document]:
         raw_text,
         flags=re.IGNORECASE
     )
-
     loai_van_ban = "BỘ LUẬT"
     ten_van_ban = extract_title(pattern=regex_ten_bo_luat,content=raw_text)
-
     phan = splitting_text(pattern=regex_phan,content=raw_text)
     for i,p in enumerate(phan):
         # phan mo dau
@@ -137,7 +177,6 @@ def chunking_bo_luat(raw_text:str) -> list[Document]:
                 phan_mo_dau=True,
             ))
             continue
-
         ten_phan = extract_title(pattern=regex_ten_phan,content=p)
         # cat theo chuong
         chuong = splitting_text(pattern=regex_chuong,content=p)[1:]
@@ -157,7 +196,6 @@ def chunking_bo_luat(raw_text:str) -> list[Document]:
                 muc = splitting_text(pattern=regex_muc,content=c)[1:]
                 for m in muc:
                     ten_muc = extract_title(pattern=regex_ten_muc,content=m)
-
                     # kiem tra trong muc co tieu muc hay khong
                     check_tieu_muc = re.search(
                         pattern=r"\*\*Tiểu\s*mục.*?",
@@ -169,9 +207,7 @@ def chunking_bo_luat(raw_text:str) -> list[Document]:
                         tieu_muc = splitting_text(pattern=regex_tieu_muc,content=m)[1:]
                         for tm in tieu_muc:
                             ten_tieu_muc = extract_title(pattern=regex_ten_tieu_muc,content=tm)
-
                             # cat theo dieu
-
                             chunks.extend(
                                 chunk_by_dieu(
                                 content=tm,
@@ -211,13 +247,11 @@ def chunking_bo_luat(raw_text:str) -> list[Document]:
 
 def chunking_chi_thi(raw_text:str) -> list[Document]:
     chunks = []
-
     parts = re.split(r'\n(?=\d+\.\s)', raw_text.strip())
     phan_mo_dau = parts[0].strip()
     lines = phan_mo_dau.split('\n')
     loai_van_ban = lines[0]
     ten_van_ban = lines[0] + " - " + lines[1]
-
     chunks.append(make_document(
         content=phan_mo_dau,
         loai_van_ban=loai_van_ban,
@@ -235,10 +269,7 @@ def chunking_chi_thi(raw_text:str) -> list[Document]:
             ten_muc_chi_thi=ten_muc
         ))
     return chunks
-
-
 def chunking_lenh(raw_text:str) -> list[Document]:
-
     loai_van_ban ="LỆNH"
     clean_text = raw_text.strip()
 
@@ -314,16 +345,13 @@ def chunking_luat(raw_text:str) -> list[Document]:
                     ten_chuong=ten_chuong
                 )
             )
-
     return chunks
 def chunking_nghi_dinh(raw_text:str) -> list[Document]:
     chunks = []
     loai_van_ban = "NGHỊ ĐỊNH"
-
     if "#" in raw_text:
         regex_dieu = r"(?=#\s+\*\*Điều\s+\d+)"
         regex_ten_dieu = r"\*\*Điều\s+\d+[^\n]*"
-
         ten_van_ban = extract_title(
             pattern=r"\*\*NGHỊ.*?(?=\n_Căn\s+cứ)",
             content = raw_text
@@ -338,17 +366,14 @@ def chunking_nghi_dinh(raw_text:str) -> list[Document]:
                     phan_mo_dau=True,
                 ))
                 continue
-
             ten_dieu = extract_title(pattern=regex_ten_dieu, content=dieu)
             noi_dung_dieu = dieu.replace(ten_dieu, "", 1).strip()
-
             check_not_khoan = (
                     noi_dung_dieu.startswith('"') or
                     noi_dung_dieu.startswith('“') or
                     not
                     bool(re.search(r"(?:^|\n)\d+\.\s+", noi_dung_dieu))  # THÊM
             )
-
             if check_not_khoan:
                 chunks.append(
                     make_document(
@@ -369,7 +394,6 @@ def chunking_nghi_dinh(raw_text:str) -> list[Document]:
                         content = khoan
                     )
                     ten_khoan = "KHOẢN " + ten_khoan
-
                     chunks.append(
                         make_document(
                             content=khoan,
@@ -379,10 +403,7 @@ def chunking_nghi_dinh(raw_text:str) -> list[Document]:
                             ten_khoan=ten_khoan
                         )
                     )
-
-        pass
     else:
-
         ten_van_ban = extract_title(
             pattern=r"NGHỊ ĐỊNH.*?(?=\nCăn cứ)",
             content = raw_text
@@ -398,17 +419,13 @@ def chunking_nghi_dinh(raw_text:str) -> list[Document]:
                 ))
                 continue
             ten_dieu = extract_title(pattern=r"Điều\s+\d+\.*[^\n]*", content=dieu)
-
             noi_dung_dieu = dieu.replace(ten_dieu, "",1).strip()
-
             check_not_khoan = (
                     noi_dung_dieu.startswith('"') or
                     noi_dung_dieu.startswith('“') or
                     not bool(re.search(r"(?:^|\n)\d+\.\s+", noi_dung_dieu))
             )
-
             if check_not_khoan:
-
                 chunks.append(
                     make_document(
                         content=dieu,
@@ -445,7 +462,6 @@ def chunking_nghi_quyet(raw_text:str) -> list[Document]:
         pattern= r"NGHỊ QUYẾT.*?(?=\nCăn cứ)",
         content = raw_text
     )
-
     dieu_list = splitting_text(pattern=r"(?=\nĐiều\s+\d+\.)", content=raw_text)
     for i,dieu in enumerate(dieu_list):
         if i == 0:
@@ -456,17 +472,13 @@ def chunking_nghi_quyet(raw_text:str) -> list[Document]:
                 phan_mo_dau=True,
             ))
             continue
-
         ten_dieu = extract_title(pattern=r"Điều\s+\d+\.*[^\n]*", content=dieu)
-
         noi_dung_dieu = dieu.replace(ten_dieu, "", 1).strip()
-
         check_not_khoan = (
                 noi_dung_dieu.startswith('"') or
                 noi_dung_dieu.startswith('“') or
                 not bool(re.search(r"(?m)^\s*\d+\.\s+", noi_dung_dieu))
         )
-
         if check_not_khoan:
             chunks.append(
                     make_document(
@@ -476,61 +488,45 @@ def chunking_nghi_quyet(raw_text:str) -> list[Document]:
                         ten_dieu=ten_dieu,
                     )
                 )
-
         else:
             raw_khoan_list = re.split(
                 r"(?=\n\s*\d+\.\s+)",
                 "\n" + noi_dung_dieu,
             )
-
             khoan_list = []
             current_khoan = ""
-
             for k in raw_khoan_list:
                 current_khoan += k
-
                 is_open_cong = current_khoan.count('“') > current_khoan.count('”')
                 is_open_thang = current_khoan.count('"') % 2 != 0
-
                 if is_open_cong or is_open_thang:
                     continue
                 else:
                     khoan_list.append((("\n" + current_khoan).strip()))
                     current_khoan = ""
-
             if current_khoan.strip():
                 khoan_list.append(current_khoan.strip())
-
             for khoan in khoan_list:
                 match = re.match(r"^\s*(\d+)", khoan)
                 if match:
                     ten_khoan = "KHOẢN " + match.group(1)
-
-
                     raw_diem_list = re.split(
                         r"(?=\n\s*[a-zđ]+\)\s+)",
                         "\n" + khoan
                     )
-
-
                     diem_list = []
                     current_diem = ""
-
                     for d in raw_diem_list:
                         current_diem += d
                         is_open_cong = current_diem.count('“') > current_diem.count('”')
                         is_open_thang = current_diem.count('"') % 2 != 0
-
                         if is_open_cong or is_open_thang:
                             continue
                         else:
                             diem_list.append(current_diem.strip())
                             current_diem = ""
-
                     if current_diem.strip():
                         diem_list.append(current_diem.strip())
-
-
                     if len(diem_list) <= 1:
                         chunks.append(make_document(
                             content=khoan,
@@ -539,10 +535,7 @@ def chunking_nghi_quyet(raw_text:str) -> list[Document]:
                             ten_dieu=ten_dieu,
                             ten_khoan=ten_khoan
                         ))
-
                     else:
-
-
                         for diem in diem_list[1:]:
                             match_diem = re.match(r"^\s*([a-zđ]+)\)\s+", diem)
                             if match_diem:
@@ -563,7 +556,6 @@ def chunking_phap_lenh(raw_text:str) -> list[Document]:
         pattern=r"PHÁP LỆNH.*?(?=\nCăn cứ)",
         content=raw_text
     )
-
     dieu_list = splitting_text(pattern=r"(?=\nĐiều\s+\d+\.)", content=raw_text)
     for i,dieu in enumerate(dieu_list):
         if i == 0:
@@ -575,15 +567,12 @@ def chunking_phap_lenh(raw_text:str) -> list[Document]:
             ))
             continue
         ten_dieu = extract_title(pattern=r"Điều\s+\d+\.*[^\n]*", content=dieu)
-
         noi_dung_dieu = dieu.replace(ten_dieu, "", 1).strip()
-
         check_not_khoan = (
                 noi_dung_dieu.startswith('"') or
                 noi_dung_dieu.startswith('“') or
                 not bool(re.search(r"(?m)^\s*\d+\.\s+", noi_dung_dieu))
         )
-
         if check_not_khoan:
             chunks.append(
                     make_document(
@@ -593,61 +582,45 @@ def chunking_phap_lenh(raw_text:str) -> list[Document]:
                         ten_dieu=ten_dieu,
                     )
                 )
-
         else:
             raw_khoan_list = re.split(
                 r"(?=\n\s*\d+\.\s+)",
                 "\n" + noi_dung_dieu,
             )
-
             khoan_list = []
             current_khoan = ""
-
             for k in raw_khoan_list:
                 current_khoan += k
-
                 is_open_cong = current_khoan.count('“') > current_khoan.count('”')
                 is_open_thang = current_khoan.count('"') % 2 != 0
-
                 if is_open_cong or is_open_thang:
                     continue
                 else:
                     khoan_list.append((("\n" + current_khoan).strip()))
                     current_khoan = ""
-
             if current_khoan.strip():
                 khoan_list.append(current_khoan.strip())
-
             for khoan in khoan_list:
                 match = re.match(r"^\s*(\d+)", khoan)
                 if match:
                     ten_khoan = "KHOẢN " + match.group(1)
-
-
                     raw_diem_list = re.split(
                         r"(?=\n\s*[a-zđ]+\)\s+)",
                         "\n" + khoan
                     )
-
-
                     diem_list = []
                     current_diem = ""
-
                     for d in raw_diem_list:
                         current_diem += d
                         is_open_cong = current_diem.count('“') > current_diem.count('”')
                         is_open_thang = current_diem.count('"') % 2 != 0
-
                         if is_open_cong or is_open_thang:
                             continue
                         else:
                             diem_list.append(current_diem.strip())
                             current_diem = ""
-
                     if current_diem.strip():
                         diem_list.append(current_diem.strip())
-
-
                     if len(diem_list) <= 1:
                         chunks.append(make_document(
                             content=khoan,
@@ -703,7 +676,6 @@ def chunking_thong_tu(raw_text:str) -> list[Document]:
         pattern=r"THÔNG TƯ.*?(?=\nCăn cứ)",
         content=raw_text
     )
-
     chuong = splitting_text(pattern=r"\n(?=Chương\s+[IVXLCDM]+\b)", content=raw_text)
     for i,c in enumerate(chuong):
         if i == 0:
@@ -718,19 +690,15 @@ def chunking_thong_tu(raw_text:str) -> list[Document]:
             pattern=r"Chương.*?(?=\n+?[ \t]*Điều)",
             content=c
         )
-
         dieu_list = splitting_text(pattern=r"(?=\nĐiều\s+\d+\.)", content=c)[1:]
         for dieu in dieu_list:
             ten_dieu = extract_title(pattern=r"Điều\s+\d+\.*[^\n]*", content=dieu)
-
             noi_dung_dieu = dieu.replace(ten_dieu, "", 1).strip()
-
             check_not_khoan = (
                     noi_dung_dieu.startswith('"') or
                     noi_dung_dieu.startswith('“') or
                     not bool(re.search(r"(?m)^\s*\d+\.\s+", noi_dung_dieu))
             )
-
             if check_not_khoan:
                 chunks.append(
                     make_document(
@@ -741,62 +709,45 @@ def chunking_thong_tu(raw_text:str) -> list[Document]:
                         ten_chuong=ten_chuong,
                     )
                 )
-
             else:
-
-
                 raw_khoan_list = re.split(
                     r"(?=\n\s*\d+\.\s+)",
                     "\n" + noi_dung_dieu,
                 )
-
                 khoan_list = []
                 current_khoan = ""
-
                 for k in raw_khoan_list:
                     current_khoan += k
-
                     is_open_cong = current_khoan.count('“') > current_khoan.count('”')
                     is_open_thang = current_khoan.count('"') % 2 != 0
-
                     if is_open_cong or is_open_thang:
                         continue
                     else:
                         khoan_list.append((("\n" + current_khoan).strip()))
                         current_khoan = ""
-
                 if current_khoan.strip():
                     khoan_list.append(current_khoan.strip())
-
                 for khoan in khoan_list:
                     match = re.match(r"^\s*(\d+)", khoan)
                     if match:
                         ten_khoan = "KHOẢN " + match.group(1)
-
                         raw_diem_list = re.split(
                             r"(?=\n\s*[a-zđ]+\)\s+)",
                             "\n" + khoan
                         )
-
-
                         diem_list = []
                         current_diem = ""
-
                         for d in raw_diem_list:
                             current_diem += d
                             is_open_cong = current_diem.count('“') > current_diem.count('”')
                             is_open_thang = current_diem.count('"') % 2 != 0
-
                             if is_open_cong or is_open_thang:
                                 continue
                             else:
                                 diem_list.append(current_diem.strip())
                                 current_diem = ""
-
                         if current_diem.strip():
                             diem_list.append(current_diem.strip())
-
-
                         if len(diem_list) <= 1:
                             chunks.append(make_document(
                             content=khoan,
@@ -806,9 +757,7 @@ def chunking_thong_tu(raw_text:str) -> list[Document]:
                             ten_khoan=ten_khoan,
                             ten_chuong=ten_chuong,
                         ))
-
                         else:
-
                             for diem in diem_list[1:]:
                                 match_diem = re.match(r"^\s*([a-zđ]+)\)\s+", diem)
                                 if match_diem:
@@ -828,25 +777,27 @@ def chunking_router(raw_text:str):
     header_text = raw_text[:1000].upper()
 
     if 'BỘ LUẬT' in header_text:
-        return chunking_bo_luat(raw_text)
+        chunks = chunking_bo_luat(raw_text)
     elif 'LUẬT' in header_text:
-        return chunking_luat(raw_text)
+        chunks = chunking_luat(raw_text)
     elif 'NGHỊ ĐỊNH' in header_text:
-        return chunking_nghi_dinh(raw_text)
+        chunks = chunking_nghi_dinh(raw_text)
     elif 'NGHỊ QUYẾT' in header_text:
-        return chunking_nghi_quyet(raw_text)
+        chunks = chunking_nghi_quyet(raw_text)
     elif 'PHÁP LỆNH' in header_text:
-        return chunking_phap_lenh(raw_text)
+        chunks = chunking_phap_lenh(raw_text)
     elif 'LỆNH' in header_text:
-        return chunking_lenh(raw_text)
+        chunks = chunking_lenh(raw_text)
     elif 'QUYẾT ĐỊNH' in header_text:
-        return chunking_quyet_dinh(raw_text)
+        chunks = chunking_quyet_dinh(raw_text)
     elif 'THÔNG TƯ' in header_text:
-        return chunking_thong_tu(raw_text)
+        chunks = chunking_thong_tu(raw_text)
     elif 'CHỈ THỊ' in header_text:
-        return chunking_chi_thi(raw_text)
+        chunks = chunking_chi_thi(raw_text)
     else:
-        return chunking(raw_text)
+        chunks = chunking(raw_text)
+
+    return fallback_chunking(chunks)
 
 
 if __name__ == '__main__':

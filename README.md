@@ -1,82 +1,143 @@
-# LawRAG
+# ⚖️ LawRAG: Vietnamese Legal RAG System
 
-Hệ thống Retrieval-Augmented Generation (RAG) chuyên biệt cho hỏi-đáp văn bản pháp luật, hỗ trợ đầu vào PDF và DOCX. Sử dụng hybrid search (dense + sparse embedding) kết hợp reranking để tối ưu độ chính xác khi truy xuất các Điều, Khoản trong văn bản luật.
+LawRAG is a specialized Retrieval-Augmented Generation (RAG) system designed for Vietnamese legal documents (PDF and DOCX). It utilizes Hybrid Search (Dense + Sparse embeddings) combined with Reranking to maximize retrieval accuracy for legal Articles and Clauses, while eliminating LLM hallucination.
 
-## Tính năng chính
+![img_1.png](img_1.png)
 
-- **Xử lý đa định dạng**: hỗ trợ file PDF và DOCX
-- **Chunking thông minh**: tự động phân loại cấu trúc văn bản
-  - *Structural Chunking* (regex theo cấu trúc pháp lý) cho văn bản luật đã nhận diện được cấu trúc
-  - *Recursive Chunking* (LangChain) cho văn bản chưa xử lý được cấu trúc
-- **Hybrid Search**: kết hợp dense embedding (HuggingFace) và sparse embedding (Qdrant/BM25)
-- **Metadata retrieval**: trích xuất metadata từ câu hỏi để lọc kết quả tìm kiếm khi có thể
-- **Reranking**: sử dụng reranker model để tinh chỉnh lại top-k kết quả trước khi sinh câu trả lời
-- **Vector store**: Qdrant 
+## ✨ Key Features
 
-## Kiến trúc hệ thống
+- **Multi-format Support**: Seamlessly processes both PDF and DOCX files.
+- **Smart Chunking Strategy**:
+  - *Structural Chunking*: Regex-based splitting tailored to each Vietnamese legal document type — Code (*Bộ luật*), Law (*Luật*), Decree (*Nghị định*), Resolution (*Nghị quyết*), Ordinance (*Pháp lệnh*), Order (*Lệnh*), Decision (*Quyết định*), Circular (*Thông tư*), and Directive (*Chỉ thị*) — each parsed according to its own document hierarchy (eg : Chapter, Article, Clause).
+  - *Recursive Chunking (LangChain)*: Fallback mechanism for unstructured text.- **Hybrid Search**: Combines Dense embeddings for semantic understanding and Sparse (BM25) embeddings for exact keyword matching.
+- **Dynamic Metadata Routing**: LLM automatically extracts metadata (e.g., Document Type, ID) from user queries to filter Qdrant payloads, narrowing the search scope.
+- **Advanced Reranking**: Re-scores the top-K retrieved chunks before context injection to ensure the most relevant legal clauses are prioritized.
+- **Zero-Duplication Mechanism**: Employs MD5 hashing for deterministic chunk IDs and `upsert` operations to prevent duplicate vectors during multiple ingestions.
 
-Pipeline được chia thành 2 luồng độc lập: **Data Ingestion** (xử lý offline) và **Query & Generation** (xử lý khi người dùng hỏi).
+---
+
+## 🏗️ System Architecture
+### The pipeline is divided into two independent flows:
+##### **Data Ingestion** (Offline) and **Query & Generation** (Online)
 
 ![LawRAG Pipeline Architecture](rag_pipeline.svg)
 
-### 1. Data Ingestion
+### 1. Data Ingestion Pipeline
 
-| Bước | Mô tả |
-|------|-------|
-| Document Reader | Đọc nội dung từ file PDF/DOCX |
-| Format Classification | Phân loại văn bản: cấu trúc đã biết hay chưa |
-| Structural Chunking | Cắt chunk theo cấu trúc pháp lý (regex: Điều, Khoản, Chương) |
-| Langchain Recursive Chunking | Fallback cho văn bản có cấu trúc chưa xử lý |
-| Embedding Engine | Sinh dense vector (HuggingFace) và sparse vector (Qdrant BM25) cho mỗi chunk |
-| Vector & Payload Construction | Đóng gói vector + metadata (payload) |
-| Qdrant Vector Store | Lưu trữ vector phục vụ truy vấn |
+| Step | Description |
+|------|-------------|
+| **Document Reader** | Extracts raw text from PDF/DOCX files. |
+| **Format Classification** | Identifies if the document follows standard legal formatting. |
+| **Structural Chunking** | Splits text based on legal hierarchy. |
+| **Fallback Chunking** | Uses LangChain's `RecursiveCharacterTextSplitter` for unstructured text. |
+| **Embedding Engine** | Generates Dense vectors (`Alibaba-NLP/gte-multilingual-base` via `sentence-transformers`) & Sparse vectors (`Qdrant/bm25` via FastEmbed's `SparseTextEmbedding`). |
+| **Payload Construction** | Packages vectors with extracted legal metadata. |
+| **Vector Store** | Upserts data into Qdrant (Local or Cloud) using Deterministic IDs. |
 
-### 2. Query & Generation
+### 2. Query & Generation Pipeline
 
-| Bước | Mô tả |
-|------|-------|
-| Query Analysis | LLM trích xuất metadata từ câu hỏi người dùng (nếu có) |
-| Retrieval | Hybrid Search trên Qdrant — có filter theo metadata nếu trích xuất được, không filter nếu không có |
-| Reranking | Reranker model chấm điểm lại top-k kết quả retrieval |
-| Generation | LLM tổng hợp câu trả lời cuối cùng dựa trên câu hỏi gốc + các đoạn văn bản liên quan đã rerank |
+| Step | Description |
+|------|-------------|
+| **Query Analysis** | LLM analyzes the user prompt to extract filtering metadata. |
+| **Retrieval** | Executes Hybrid Search on Qdrant (applies payload filters if metadata is found). |
+| **Reranking** | Cross-encoder model (`jinaai/jina-reranker-v2-base-multilingual` via FastEmbed's `TextCrossEncoder`) re-scores the retrieved top-K results. |
+| **Generation** | LLM synthesizes the final answer using the user query and reranked context. |
 
-## Cài đặt
+---
 
+## 🛠️ Tech Stack
+
+- **Vector Database**: Qdrant
+- **Backend API**: FastAPI, Uvicorn
+- **Frontend UI**: Streamlit
+- **LLM**: Google Gemini API
+- **Dense Embeddings**: `sentence-transformers` (`Alibaba-NLP/gte-multilingual-base`)
+- **Sparse Embeddings & Reranking**: FastEmbed (`Qdrant/bm25`, `jinaai/jina-reranker-v2-base-multilingual`)
+- **Orchestration & Chunking**: LangChain, Custom Regex Splitters
+- **Deployment**: Docker, Docker Compose
+
+---
+## 📚 Data Source
+- The legal corpus is sourced from **[vbpl.vn](https://vbpl.vn/van-ban/trung-uong)** — Vietnam's National Database on Legal Documents (*Cơ sở dữ liệu quốc gia về pháp luật*), Central Documents section. Using this official government portal ensures the underlying data reflects authoritative, verifiable Vietnamese legislation rather than third-party or unofficial sources.
+- The provided Qdrant Cloud instance (Option A below) currently holds **~86 indexed legal documents** spanning multiple document types (Codes, Laws, Decrees, Resolutions, and more) — ready to query out of the box.
+---
+## 🚀 Quick Start
+
+### Prerequisites
 ```bash
 git clone https://github.com/phanlongnhatlam/LawRAG.git
 cd LawRAG
-pip install -r requirements.txt
 ```
-
-## Cấu hình
-
-Tạo file `.env` với các biến môi trường cần thiết:
-
+### Create a .env file
+Copy the `.env.example` file or create a new `.env` file in the root directory with the following variables:
 ```env
-QDRANT_URL=
-QDRANT_API_KEY=
-HUGGINGFACE_API_KEY=
-LLM_API_KEY=
+# --- LLM & Embeddings Credentials ---
+HF_TOKEN="your_huggingface_api_key"
+GOOGLE_API_KEY="your_google_api_key"
+
+# --- Option A: Qdrant Cloud (Default - Ready to use) ---
+QDRANT_URL="<see .env.example for the provided read-only endpoint>"
+QDRANT_API_KEY="<see .env.example for the provided read-only key>"
+
+# --- Option B: Qdrant Local (Change variables below if using self-hosted) ---
+# QDRANT_URL="http://lawrag_db:6333"
+# QDRANT_API_KEY=""
 ```
 
-## Sử dụng
+
+
+### Option A: Use Qdrant Cloud (default)
+```bash
+docker compose up -d --build
+```
+   The system will connect directly to my Qdrant Cloud instance — no local vector database needed.
+> ⚠️ Note: The provided API key is **read-only**. This option is for **querying and testing the demo only** — you can ask questions and see retrieval/generation in action, but you cannot ingest new documents or modify the existing dataset. To upload and index your own legal documents, use **Option B** (self-hosted Qdrant) below.
+### Option B: Run Qdrant Locally (self-hosted)
 
 ```bash
-# Nạp dữ liệu (indexing)
-python ingest.py --input ./data
-
-# Chạy truy vấn
-python query.py --question "Điều kiện để ký hợp đồng lao động là gì?"
+docker compose --profile local up -d --build
+```
+Upload your own legal documents (PDF/DOCX) into the `./data` folder, then trigger ingestion:
+```bash
+docker compose exec backend python main.py 
 ```
 
-## Công nghệ sử dụng
+> ⚠️ Note: switching between Option A and Option B requires re-running `docker compose up -d` after editing `.env` , since Docker Compose reads environment variables at container startup.
+### After runing docker you can direct into to testing
+```bash
+FastAPI_URL : http://localhost:8000/docs
+Streamlit_URL : http://localhost:8501 
+QdrantUI_URL : http://localhost:6333/dashboard (running locally)
+```
 
-- **Vector store**: Qdrant
-- **Dense embedding**: HuggingFace sentence-transformers
-- **Sparse embedding**: Qdrant/BM25
-- **Chunking**: LangChain (RecursiveCharacterTextSplitter) + custom regex splitter
-- **LLM**: *(điền tên model bạn dùng, ví dụ GPT-4, Claude, Gemini...)*
+## 📊 Evaluation
 
-## License
+The system is evaluated using the [Ragas](https://github.com/explodinggradients/ragas) framework, covering both **retrieval quality** and **generation quality**. The judge LLM used for evaluation is **Qwen2.5** (served locally via Ollama).
 
-*(điền license của bạn, ví dụ MIT)*
+### Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| **Faithfulness** | Generation | Measures whether the generated answer is factually grounded in the retrieved context, penalizing hallucinated claims not supported by the source. |
+| **Answer Relevancy** | Generation | Measures how well the generated answer addresses the actual user question, using embedding similarity between the question and a reconstructed question from the answer. |
+| **Context Precision** | Retrieval | Measures whether the relevant chunks are ranked higher than irrelevant ones among the retrieved context. |
+| **Context Recall** | Retrieval | Measures whether all necessary information to answer the question was successfully retrieved. |
+| **Correctness** *(custom)* | Generation | LLM-as-judge metric that checks whether the response covers the key points defined in a manually written grading rubric (`grading_notes`), returning `pass` / `fail`. |
+
+### Evaluation Setup
+
+- **Judge LLM**: `qwen2.5:latest` (via Ollama)
+- **Embeddings**: `Alibaba-NLP/gte-multilingual-base` 
+- **Framework**: `Ragas`
+
+### Results
+
+| Metric | Score |
+|--------|----|
+| Faithfulness | *0.67* |
+| Answer Relevancy | *0.59* |
+| Context Precision | *0.70* |
+| Context Recall | *0.86* |
+| Correctness (pass rate) | *71.4%* |
+
+> Full per-question results available in [`.\src\evaluation\rag_eval\evals\experiments`](./src/evaluation/rag_eval/evals/experiments/mystifying_dorsey.csv).

@@ -23,7 +23,7 @@ def init_collection(client : QdrantClient,collection_name:str = "vietnam_laws"):
             vectors_config={
                 "dense": models.VectorParams(
                     distance=models.Distance.COSINE,
-                    size=384,
+                    size=768,
                 ),
             },
             sparse_vectors_config={
@@ -59,7 +59,13 @@ def init_collection(client : QdrantClient,collection_name:str = "vietnam_laws"):
             client.create_payload_index(
                 collection_name=collection_name,
                 field_name=field,
-                field_schema=models.PayloadSchemaType.TEXT
+                field_schema=models.TextIndexParams(
+                    type=models.TextIndexType.TEXT,
+                    tokenizer=models.TokenizerType.WORD,
+                    min_token_len=1,
+                    max_token_len=20,
+                    lowercase=True,
+                )
             )
 
 

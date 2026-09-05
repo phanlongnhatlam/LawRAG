@@ -6,7 +6,7 @@ import streamlit as st
 api_url = os.getenv("API_URL", "http://localhost:8000")
 
 # st.cache_data
-@st.cache_data(show_spinner=False, ttl=3600) # ttl=3600: Xóa bộ nhớ đệm sau 1 tiếng
+@st.cache_data(show_spinner=False, ttl=3600) # cache 1 tiếng
 def call_fastapi_backend(question: str):
     response = requests.post(f"{api_url}/api/chat/ask", json={"question": question})
     if response.status_code == 200:
@@ -16,7 +16,7 @@ def call_fastapi_backend(question: str):
 
 # Streamed response emulator
 def response_generator(answer):
-    for word in answer.split():
+    for word in answer.split(" "):
         yield word + " "
         time.sleep(0.05)
 

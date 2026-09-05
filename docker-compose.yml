@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     container_name: lawrag_backend
@@ -9,12 +7,8 @@ services:
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    environment:
-      QDRANT_URL: http://lawrag_db:6333
     env_file:
       - .env
-    depends_on:
-      - lawrag_db
 
   frontend:
     container_name: lawrag_frontend
@@ -34,6 +28,7 @@ services:
       - "6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
+    profiles: ["local"]
 
 volumes:
   qdrant_data:

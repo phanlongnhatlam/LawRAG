@@ -1,7 +1,8 @@
 .env
 notebooks
-main.py
-data
+data/*
+!data/.gitkeep
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -10,7 +11,7 @@ __pycache__/
 # C extensions
 *.so
 
-data/raw
+
 # Distribution / packaging
 .Python
 build/

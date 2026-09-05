@@ -8,7 +8,7 @@ from src.retrieval.vector_store import get_qdrant_client
 
 class ChatRequest(BaseModel):
     question: str
-router = APIRouter(prefix="/api/chat",tags=["chat"])
+router = APIRouter(prefix="/api/chat",tags=["Chat"])
 client = get_qdrant_client()
 @router.post("/ask")
 async def ask(request : ChatRequest):
