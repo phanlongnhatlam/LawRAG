@@ -6,7 +6,8 @@ LawRAG is a specialized Retrieval-Augmented Generation (RAG) system designed for
 
 ## ✨ Key Features
 
-- **Multi-format Support**: Seamlessly processes both PDF and DOCX files.
+- **Multi-format Support**: Processes PDF (text-based/selectable only) and DOCX files. 
+  Scanned or image-based PDFs are not currently supported (OCR not implemented).
 - **Smart Chunking Strategy**:
   - *Structural Chunking*: Regex-based splitting tailored to each Vietnamese legal document type — Code (*Bộ luật*), Law (*Luật*), Decree (*Nghị định*), Resolution (*Nghị quyết*), Ordinance (*Pháp lệnh*), Order (*Lệnh*), Decision (*Quyết định*), Circular (*Thông tư*), and Directive (*Chỉ thị*) — each parsed according to its own document hierarchy (eg : Chapter, Article, Clause).
   - *Recursive Chunking (LangChain)*: Fallback mechanism for unstructured text.- **Hybrid Search**: Combines Dense embeddings for semantic understanding and Sparse (BM25) embeddings for exact keyword matching.
@@ -24,15 +25,15 @@ LawRAG is a specialized Retrieval-Augmented Generation (RAG) system designed for
 
 ### 1. Data Ingestion Pipeline
 
-| Step | Description |
-|------|-------------|
-| **Document Reader** | Extracts raw text from PDF/DOCX files. |
-| **Format Classification** | Identifies if the document follows standard legal formatting. |
-| **Structural Chunking** | Splits text based on legal hierarchy. |
-| **Fallback Chunking** | Uses LangChain's `RecursiveCharacterTextSplitter` for unstructured text. |
+| Step | Description                                                                                                                                                       |
+|------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Document Reader** | Extracts raw text from text-based (selectable) PDF and DOCX files. Scanned/image-based PDFs are not supported                                                     |
+| **Format Classification** | Identifies if the document follows standard legal formatting.                                                                                                     |
+| **Structural Chunking** | Splits text based on legal hierarchy.                                                                                                                             |
+| **Fallback Chunking** | Uses LangChain's `RecursiveCharacterTextSplitter` for unstructured text.                                                                                          |
 | **Embedding Engine** | Generates Dense vectors (`Alibaba-NLP/gte-multilingual-base` via `sentence-transformers`) & Sparse vectors (`Qdrant/bm25` via FastEmbed's `SparseTextEmbedding`). |
-| **Payload Construction** | Packages vectors with extracted legal metadata. |
-| **Vector Store** | Upserts data into Qdrant (Local or Cloud) using Deterministic IDs. |
+| **Payload Construction** | Packages vectors with extracted legal metadata.                                                                                                                   |
+| **Vector Store** | Upserts data into Qdrant (Local or Cloud) using Deterministic IDs.                                                                                                |
 
 ### 2. Query & Generation Pipeline
 
