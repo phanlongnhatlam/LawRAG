@@ -14,11 +14,11 @@ def reset_qdrant(client):
 
 def run_batch_ingestion():
     if not os.path.exists(DATA_DIR):
-        print(f"Không tìm thấy thư mục: {DATA_DIR}")
-        return
+        os.makedirs(DATA_DIR)
+        print(f"Đã tạo thư mục {DATA_DIR}")
     client = get_qdrant_client()
     reset_qdrant(client)
-    init_collection(client)
+    init_collection(client, COLLECTION_NAME)
     valid_extensions = [".pdf", ".docx"]
     files_to_process = []
     for root, dirs, files in os.walk(DATA_DIR):
