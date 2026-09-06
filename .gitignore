@@ -2,6 +2,11 @@
 notebooks
 data/*
 !data/.gitkeep
+!data/raw/
+data/raw/*
+
+# 5. Giữ lại file .gitkeep để Git nhận diện thư mục data/raw/
+!data/raw/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
