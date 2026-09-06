@@ -98,7 +98,7 @@ docker compose up -d --build
 ```bash
 docker compose --profile local up -d --build
 ```
-Upload your own legal documents (PDF/DOCX) into the `./data` folder, then trigger ingestion:
+Upload your own legal documents (PDF/DOCX) into the `./data/raw` folder, then trigger ingestion:
 ```bash
 docker compose exec backend python main.py 
 ```
