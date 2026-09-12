@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from api.routes import chat, upload
-import logging
+
 app = FastAPI(
     title="LawRAG API",
     description="LawRAG API",

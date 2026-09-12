@@ -46,6 +46,7 @@ def init_collection(client : QdrantClient,collection_name:str = "vietnam_laws"):
 
         text_fields = [
             "ten_van_ban",
+            "ten_phan",
             "ten_chuong",
             "ten_muc",
             "ten_tieu_muc",

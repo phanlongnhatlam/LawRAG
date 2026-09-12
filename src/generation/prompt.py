@@ -33,6 +33,7 @@ def get_extraction_metadata_prompt():
             Trả về JSON với các trường sau (bỏ qua nếu không đề cập):
             - loai_van_ban: (BỘ LUẬT/CHỈ THỊ/LỆNH/LUẬT/NGHỊ ĐỊNH/NGHỊ QUYẾT/PHÁP LỆNH/QUYẾT ĐỊNH/THÔNG TƯ)
             - ten_van_ban: tên đầy đủ viết hoa (VD: LUẬT ĐẤT ĐAI)
+            - ten_phan : (VD : Phần thứ nhất, Phần thứ hai)
             - ten_chuong: (VD: Chương I, Chương II)
             - ten_muc : (VD: Mục 1, Mục 2)
             - ten_tieu_muc : (VD: Tiểu mục 1, Tiểu mục 2)
